@@ -1,13 +1,14 @@
 import pandas as pd
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.naive_bayes import MultinomialNB
 from sklearn.metrics import accuracy_score, classification_report, f1_score
 import nltk
 from nltk.corpus import stopwords
+nltk.download('stopwords')
 
 # Load the data
-data_path = 'TokenizedFrenchData/all_tokenized_data.csv'
+data_path = 'TokenizedData/all_tokenized_data.csv'
 data = pd.read_csv(data_path)
 
 # Combine the text and author into a DataFrame
@@ -16,7 +17,7 @@ data_df = pd.DataFrame({'text': data['text'], 'author': data['author']})
 # Find the minimum number of samples for any author
 min_samples = data_df['author'].value_counts().min()
 
-# Undersample each author to have the same number of samples
+# Undersample each author to have the same number of samples of each author in the train set
 data_df_balanced = data_df.groupby('author', group_keys=False).apply(lambda x: x.sample(min_samples, random_state=42)).reset_index(drop=True)
 
 # Split the balanced data into features and labels
@@ -35,8 +36,7 @@ if leakage:
 else:
     print("No data leakage detected.")
 
-# Download and use French stop words from nltk
-nltk.download('stopwords')
+
 french_stop_words = stopwords.words('french')
 
 # Feature extraction using TF-IDF
@@ -44,12 +44,28 @@ vectorizer = TfidfVectorizer(stop_words=french_stop_words)
 X_train_tfidf = vectorizer.fit_transform(X_train)
 X_test_tfidf = vectorizer.transform(X_test)
 
-# Train the Naive Bayes classifier
+# The Naive Bayes classifier
 nb_classifier = MultinomialNB()
-nb_classifier.fit(X_train_tfidf, y_train)
 
-# Predict on the test set
-y_pred = nb_classifier.predict(X_test_tfidf)
+# The hyperparameter grid for GridSearchCV
+param_grid = {
+    'alpha': [0.0001, 0.001, 0.1, 0.5, 1.0, 2.0, 5.0] 
+}
+
+# Set up GridSearchCV
+grid_search = GridSearchCV(estimator=nb_classifier, param_grid=param_grid, cv=5, scoring='f1_weighted', verbose=1, n_jobs=-1)
+
+# Perform Grid Search
+grid_search.fit(X_train_tfidf, y_train)
+
+# Get the best model from Grid Search
+best_model = grid_search.best_estimator_
+
+# Print the best hyperparameters
+print(f"Best hyperparameters: {grid_search.best_params_}")
+
+# Evaluate the best model on the test set
+y_pred = best_model.predict(X_test_tfidf)
 
 # Evaluate the model
 accuracy = accuracy_score(y_test, y_pred)
