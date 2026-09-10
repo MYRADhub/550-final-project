@@ -1,0 +1,17 @@
+# Runtime dependencies for the COMP 550 Russian authorship-attribution project.
+# Notebooks (preprocessing, Naive Bayes, HMM) need everything up to hmmlearn;
+# the LSTM and the English/French scripts additionally need tensorflow, gensim,
+# spacy and unidecode.
+pandas
+numpy
+scikit-learn
+nltk
+tqdm
+joblib
+hmmlearn
+gensim
+matplotlib
+seaborn
+unidecode
+spacy
+tensorflow
